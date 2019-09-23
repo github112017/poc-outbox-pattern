@@ -37,7 +37,7 @@ public class OutboxMessageWatcher {
     }
 
     @PostConstruct
-    void postConstruct() {
+    void start() {
         executor.execute(engine);
     }
 
