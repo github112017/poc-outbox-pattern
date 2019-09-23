@@ -28,46 +28,46 @@ import static org.mockito.Mockito.verify;
 @SpringBootTest
 public class OrderServiceTest {
 
-    @ClassRule
-    public static final PostgreSQLContainer POSTGRE_SQL_CONTAINER = SharedPostgreSQLContainer.getInstance();
+	@ClassRule
+	public static final PostgreSQLContainer POSTGRE_SQL_CONTAINER = SharedPostgreSQLContainer.getInstance();
 
-    @Autowired
-    private OrderService orderService;
+	@Autowired
+	private OrderService orderService;
 
-    @Autowired
-    private OrderRepository orderRepository;
+	@Autowired
+	private OrderRepository orderRepository;
 
-    @Autowired
-    private OutboxRepository outboxRepository;
+	@Autowired
+	private OutboxRepository outboxRepository;
 
-    @MockBean
-    private MessageBrokerService messageBrokerService;
+	@MockBean
+	private MessageBrokerService messageBrokerService;
 
-    @Test
-    public void shouldSaveOutboxMessageWhenOrderIsSaved() {
-        Order order = orderService.save(newOrder());
+	@Test
+	public void shouldSaveOutboxMessageWhenOrderIsSaved() {
+		Order order = orderService.save(newOrder());
 
-        assertThat(orderRepository.existsById(order.getId())).isTrue();
+		assertThat(orderRepository.existsById(order.getId())).isTrue();
 
-        List<OutboxMessage> messages = outboxRepository.findAllByTypeAndAggregateTypeAndAggregateId(MessageType.CREATE,
-                AggregateType.ORDER, order.getId());
+		List<OutboxMessage> messages = outboxRepository.findAllByTypeAndAggregateTypeAndAggregateId(MessageType.CREATE,
+				AggregateType.ORDER, order.getId());
 
-        assertThat(messages).hasSize(1);
-        JsonNode payload = messages.get(0).getPayload();
-        assertThat(payload.get("orderId").asText()).isEqualTo(order.getId().toString());
-        assertThat(payload.get("clientId").asText()).isEqualTo(order.getClientId().toString());
-        assertThat(payload.get("totalValue").asDouble()).isEqualTo(order.getTotalValue());
-    }
+		assertThat(messages).hasSize(1);
+		JsonNode payload = messages.get(0).getPayload();
+		assertThat(payload.get("orderId").asText()).isEqualTo(order.getId().toString());
+		assertThat(payload.get("clientId").asText()).isEqualTo(order.getClientId().toString());
+		assertThat(payload.get("totalValue").asDouble()).isEqualTo(order.getTotalValue());
+	}
 
-    @Test
-    public void shouldSendMessageToBrokerWhenOrderIsSaved() {
-        Order order = orderService.save(newOrder());
+	@Test
+	public void shouldSendMessageToBrokerWhenOrderIsSaved() {
+		Order order = orderService.save(newOrder());
 
-        verify(messageBrokerService, timeout(1000).times(1)).send(any(), any());
-    }
+		verify(messageBrokerService, timeout(1000).times(1)).send(any(), any());
+	}
 
-    private Order newOrder() {
-        return Order.builder().clientId(UUID.randomUUID()).description("Order test").totalValue(666D).build();
-    }
+	private Order newOrder() {
+		return Order.builder().clientId(UUID.randomUUID()).description("Order test").totalValue(666D).build();
+	}
 
 }

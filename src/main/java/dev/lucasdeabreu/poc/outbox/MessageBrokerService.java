@@ -7,8 +7,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class MessageBrokerService {
 
-    public void send(final String topic, final Object message) {
-        log.debug("Sending to message broker, topic: {}", topic);
-    }
+	public void send(final String topic, final Object message) {
+		log.debug("Sending to message broker, topic: {}", topic);
+	}
 
 }

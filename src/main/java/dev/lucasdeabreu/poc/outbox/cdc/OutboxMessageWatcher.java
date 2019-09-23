@@ -28,40 +28,40 @@ import static java.util.stream.Collectors.toMap;
 @Component
 public class OutboxMessageWatcher {
 
-    private final Executor executor = Executors.newSingleThreadExecutor();
+	private final Executor executor = Executors.newSingleThreadExecutor();
 
-    private final EmbeddedEngine engine;
-    private final MessageBrokerService messageBrokerService;
+	private final EmbeddedEngine engine;
 
-    public OutboxMessageWatcher(Configuration debeziumConfiguration, MessageBrokerService messageBrokerService) {
-        this.engine = EmbeddedEngine.create().using(debeziumConfiguration).notifying(this::handleEvent).build();
-        this.messageBrokerService = messageBrokerService;
-    }
+	private final MessageBrokerService messageBrokerService;
 
-    @PostConstruct
-    void postConstruct() {
-        executor.execute(engine);
-    }
+	public OutboxMessageWatcher(Configuration debeziumConfiguration, MessageBrokerService messageBrokerService) {
+		this.engine = EmbeddedEngine.create().using(debeziumConfiguration).notifying(this::handleEvent).build();
+		this.messageBrokerService = messageBrokerService;
+	}
 
-    @PreDestroy
-    void stop() {
-        if (engine != null) {
-            engine.stop();
-        }
-    }
+	@PostConstruct
+	void postConstruct() {
+		executor.execute(engine);
+	}
 
-    private void handleEvent(SourceRecord sourceRecord) {
-        Struct sourceRecordValue = (Struct) sourceRecord.value();
-        Operation operation = Operation.forCode((String) sourceRecordValue.get(OPERATION));
-        if (operation == Operation.CREATE) {
-            Struct after = (Struct) sourceRecordValue.get(AFTER);
-			Map<String, String> message = after.schema().fields().stream()
-					.map(Field::name)
+	@PreDestroy
+	void stop() {
+		if (engine != null) {
+			engine.stop();
+		}
+	}
+
+	private void handleEvent(SourceRecord sourceRecord) {
+		Struct sourceRecordValue = (Struct) sourceRecord.value();
+		Operation operation = Operation.forCode((String) sourceRecordValue.get(OPERATION));
+		if (operation == Operation.CREATE) {
+			Struct after = (Struct) sourceRecordValue.get(AFTER);
+			Map<String, String> message = after.schema().fields().stream().map(Field::name)
 					.map(fieldName -> Pair.of(fieldName, after.getString(fieldName)))
 					.collect(toMap(Pair::getKey, Pair::getValue));
 			log.debug("Sending to message broker: {}", message);
-            messageBrokerService.send("TOPIC", message);
-        }
-    }
+			messageBrokerService.send("TOPIC", message);
+		}
+	}
 
 }
