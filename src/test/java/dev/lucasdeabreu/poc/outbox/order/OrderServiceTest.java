@@ -62,7 +62,6 @@ public class OrderServiceTest {
 	@Test
 	public void shouldSendMessageToBrokerWhenOrderIsSaved() {
 		Order order = orderService.save(newOrder());
-
 		verify(messageBrokerService, timeout(1000).times(1)).send(any(), any());
 	}
 
